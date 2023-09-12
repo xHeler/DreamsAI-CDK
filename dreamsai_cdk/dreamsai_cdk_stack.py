@@ -1,3 +1,4 @@
+import os
 from aws_cdk import (
     RemovalPolicy,
     Stack,
@@ -5,15 +6,27 @@ from aws_cdk import (
     aws_dynamodb as dynamodb,
     aws_sns as sns,
     aws_apigateway as apigw,
+    aws_lambda_event_sources as lambda_event_sources
 
 )
 from constructs import Construct
+from dotenv import load_dotenv
 
 
 class DreamsaiCdkStack(Stack):
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
+
+        load_dotenv()
+
+        # Environments
+        OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+
+        # Create an SNS topic
+        text_generation_topic = sns.Topic(
+            self, "TextGenerationTopic"
+        )
 
         # DynamoDB
         story_table = dynamodb.Table(
@@ -30,19 +43,21 @@ class DreamsaiCdkStack(Stack):
             code=_lambda.Code.from_asset('lambdas/generate_story'),
             environment={
                 "TABLE_NAME": story_table.table_name,
+                "TOPIC_ARN": text_generation_topic.topic_arn
             }
         )
 
         # Grant the necessary permissions
         story_table.grant_write_data(generate_story_lambda)
+        text_generation_topic.grant_publish(generate_story_lambda)
 
         # Define API Gateway with a Lambda proxy integration for GenerateStory Lambda
         api = apigw.RestApi(self, "storiesApi",
                             description="API for generating stories.")
         generate_story = api.root.add_resource(
-            'api').add_resource('stories').add_resource('generate')
+            'api').add_resource('stories')
         generate_story.add_method(
-            'GET', apigw.LambdaIntegration(generate_story_lambda))
+            'POST', apigw.LambdaIntegration(generate_story_lambda))
 
         ################################
 
@@ -64,3 +79,24 @@ class DreamsaiCdkStack(Stack):
 
         # Grant the necessary permissions
         story_table.grant_read_data(status_lambda)
+
+        # Generate texr | GPT
+
+        text_generation_lambda = _lambda.Function(
+            self, 'TextGenerationFunction',
+            runtime=_lambda.Runtime.PYTHON_3_9,
+            handler='main.handler',
+            code=_lambda.Code.from_asset('lambdas/text_generation'),
+            environment={
+                "TABLE_NAME": story_table.table_name,
+                "OPENAI_API_KEY": OPENAI_API_KEY
+            }
+        )
+
+        # Add SNS topic as an event source for the text_generation_lambda
+        text_generation_lambda.add_event_source(
+            lambda_event_sources.SnsEventSource(text_generation_topic)
+        )
+
+        # Grant permission to dynamodb
+        story_table.grant_write_data(text_generation_lambda)
