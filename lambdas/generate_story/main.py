@@ -33,8 +33,14 @@ def handler(event, context):
         if "MessageId" not in sns_response:
             raise Exception("Failed to publish message to SNS topic.")
 
-        return {
+        response = {
             'statusCode': 200,
+            'headers': {
+                # Adjust to match your frontend URL
+                'Access-Control-Allow-Origin': 'http://localhost:4200',
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST',  # Adjust as needed
+            },
             'body': json.dumps({'id': story_id})
         }
     except Exception as e:
@@ -47,7 +53,15 @@ def handler(event, context):
             ReturnValues="UPDATED_NEW"
         )
 
-        return {
+        response = {
             'statusCode': 500,
+            'headers': {
+                # Adjust to match your frontend URL
+                'Access-Control-Allow-Origin': 'http://localhost:4200',
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST',  # Adjust as needed
+            },
             'body': json.dumps({'error': str(e)})
         }
+
+    return response
