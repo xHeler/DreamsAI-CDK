@@ -43,3 +43,24 @@ class DreamsaiCdkStack(Stack):
             'api').add_resource('stories').add_resource('generate')
         generate_story.add_method(
             'GET', apigw.LambdaIntegration(generate_story_lambda))
+
+        ################################
+
+        status_lambda = _lambda.Function(
+            self, 'StatusLambda',
+            runtime=_lambda.Runtime.PYTHON_3_8,
+            handler='main.handler',
+            code=_lambda.Code.from_asset('lambdas/status'),
+            environment={
+                'STORY_TABLE_NAME': story_table.table_name
+            }
+        )
+
+        # Define API Gateway for Status Stories lambda
+        status_resource = api.root.add_resource(
+            "stories").add_resource("{id}")
+        status_integration = apigw.LambdaIntegration(status_lambda)
+        status_resource.add_method("GET", status_integration)
+
+        # Grant the necessary permissions
+        story_table.grant_read_data(status_lambda)
