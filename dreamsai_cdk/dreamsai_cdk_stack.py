@@ -156,3 +156,7 @@ class DreamsaiCdkStack(Stack):
         # Grand permission to dynamodb
         story_table.grant_read_data(images_generation_lambda)
         story_table.grant_write_data(images_generation_lambda)
+
+        images_generation_lambda.add_event_source(
+            lambda_event_sources.SnsEventSource(images_generation_topic)
+        )

@@ -34,7 +34,8 @@ def split_story_into_chapters(story):
 
 def handler(event, context):
     for record in event['Records']:
-        story_id = record['Sns']['Message']
+        message = json.loads(record['Sns']['Message'])
+        story_id = message["story_id"]
 
     response = table.get_item(
         Key={

@@ -23,6 +23,7 @@ headers = {
 
 
 def handler(event, context):
+    content = "ERROR"
     for record in event['Records']:
         message = json.loads(record['Sns']['Message'])
         story_id = message["story_id"]
@@ -53,19 +54,19 @@ def handler(event, context):
         else:
             content = "ERROR"
 
-        table = dynamodb.Table(TABLE_NAME)
-        table.update_item(
-            Key={'id': story_id},
-            UpdateExpression="set isTextGenerated=:t, content=:c",
-            ExpressionAttributeValues={':t': True, ':c': content},
-            ReturnValues="UPDATED_NEW"
-        )
-
         # Publish to sns
     sns_response = sns_client.publish(
         TopicArn=TOPIC_ARN,
-        Message=story_id,
+        Message=json.dumps({"story_id": story_id, "body": "test"}),
 
+    )
+
+    table = dynamodb.Table(TABLE_NAME)
+    table.update_item(
+        Key={'id': story_id},
+        UpdateExpression="set isTextGenerated=:t, content=:c",
+        ExpressionAttributeValues={':t': True, ':c': content},
+        ReturnValues="UPDATED_NEW"
     )
 
     return {
