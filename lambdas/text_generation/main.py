@@ -4,7 +4,9 @@ import json
 import requests
 
 dynamodb = boto3.resource('dynamodb')
+sns_client = boto3.client('sns')
 TABLE_NAME = os.environ.get('TABLE_NAME')
+TOPIC_ARN = os.environ['TOPIC_ARN']
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 API_ENDPOINT = 'https://api.openai.com/v1/chat/completions'
 
@@ -60,6 +62,11 @@ def handler(event, context):
         )
 
         # Publish to sns
+    sns_response = sns_client.publish(
+        TopicArn=TOPIC_ARN,
+        Message=story_id,
+
+    )
 
     return {
         'statusCode': 200,
