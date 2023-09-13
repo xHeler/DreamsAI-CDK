@@ -12,6 +12,8 @@ table = dynamodb.Table(TABLE_NAME)
 
 
 def handler(event, context):
+    request_body = json.loads(event['body'])
+
     story_id = str(uuid.uuid4())
 
     table.put_item(
@@ -27,7 +29,8 @@ def handler(event, context):
     try:
         sns_response = sns_client.publish(
             TopicArn=TOPIC_ARN,
-            Message=story_id
+            Message=json.dumps({"story_id": story_id, "body": request_body}),
+
         )
 
         if "MessageId" not in sns_response:

@@ -95,12 +95,13 @@ class DreamsaiCdkStack(Stack):
             self, 'TextGenerationFunction',
             runtime=_lambda.Runtime.PYTHON_3_9,
             handler='main.handler',
-            code=_lambda.Code.from_asset('lambdas/text_generation/function.zip'),
+            code=_lambda.Code.from_asset(
+                'lambdas/text_generation/function.zip'),
             environment={
                 "TABLE_NAME": story_table.table_name,
                 "OPENAI_API_KEY": OPENAI_API_KEY
             },
-            timeout=Duration.seconds(60)
+            timeout=Duration.seconds(90)
         )
 
         # Add SNS topic as an event source for the text_generation_lambda
